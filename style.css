@@ -1,0 +1,63 @@
+:root {
+    --canvas-bg-color: hsl(0, 0%, 11%);
+}
+
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    align-items: center;
+    justify-content: center;
+    background-color: hsl(240, 3%, 8%);
+}
+
+#input {
+    width: 50%;
+    height: 1.7rem;
+    border-radius: 1.3rem;
+    background-color: hsl(240, 3%, 8%);
+    border: 2px solid hsl(160, 2%, 27%);
+    color: white;
+    padding: 1rem;
+    font-family: "Google Sans Code", monospace;
+    font-size: 1.2rem;
+}
+
+#container {
+    margin: 1rem;
+    border: 2px solid hsl(160, 2%, 27%);
+    border-radius: 18px;
+    width: 21rem;
+    height: 21rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#canvas {
+    background-color: var(--canvas-bg-color);
+    border-radius: 10px;
+    width: 95%;
+    height: 95%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#qr-code {
+
+}
+
+#error-msg {
+    font-family: "Google Sans Code", monospace;
+    font-size: 1.2rem;
+    text-align: center;
+    color: white;
+}
+
+.disable {
+    display: none;
+}

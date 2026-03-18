@@ -9,14 +9,11 @@
         </style>
     </head>
     <body>
-        <input id="input" type="text" placeholder="Enter text to encode..." oninput="encodeQR()">
+        <input id="input" type="text" placeholder="Enter text to encode..." onchange="deployQR()">
         <div id="container">
             <div id="canvas">
                 <div id="qrcode" class="disable">
 
-                </div>
-                <div id="error-msg">
-                    Could not encode QR.
                 </div>
             </div>
         </div>

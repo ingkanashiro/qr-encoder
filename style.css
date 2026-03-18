@@ -1,5 +1,6 @@
 :root {
     --canvas-bg-color: hsl(0, 0%, 11%);
+    --qr-size: 21;
 }
 
 body {
@@ -26,7 +27,7 @@ body {
 
 #container {
     margin: 1rem;
-    border: 2px solid hsl(160, 2%, 27%);
+    border: 2px solid var(--canvas-bg-color);
     border-radius: 18px;
     width: 21rem;
     height: 21rem;
@@ -47,8 +48,33 @@ body {
     align-items: center;
 }
 
-#qr-code {
+#qrcode {
+    width: 93%;
+    height: 93%;
 
+    display: grid;
+    grid-template-columns: repeat(var(--qr-size), 1fr);
+    grid-template-rows: repeat(var(--qr-size), 1fr);
+}
+
+.module-black {
+    background-color: black;
+}
+
+.module-white {
+    background-color: white;
+}
+
+.module-rsv {
+    background-color: gray;
+}
+
+.module-white-alt {
+    background-color: lightblue;
+}
+
+.module-black-alt {
+    background-color: blue;
 }
 
 #error-msg {
@@ -56,6 +82,7 @@ body {
     font-size: 1.2rem;
     text-align: center;
     color: white;
+    z-index: 10;
 }
 
 .disable {

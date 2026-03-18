@@ -89,6 +89,7 @@ const errorCorrectionLookupTable = [ // EC per block / Blocks (1) / Codewords pe
 ]
 
 let encodingError = false;
+let version = -1;
 
 const alpha = [
     1,
@@ -349,29 +350,566 @@ const alpha = [
     1
 ];
 
-function encodeQR() {
-    let str = document.getElementById('input').value;
+function finderPattern(coords) {
 
-    // TESTING PURPOSES ONLY
-    str = 'never gonna give you up, never gonna let you down, never gonna run around and desert you. we\'re no' +
-        ' strangers to love; you know the rules, and so do i.'
+    let values = [];
+    for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
 
-    console.log(str);
+            if ([0, 6].includes(r) || [0, 6].includes(c)) {
+                values.push([coords[0] + r, coords[1] + c]);
+            }
 
-    let version = -1;
-    let size = 21
-
-    for (let i = 0; i < 41; i++) {
-        if (str.length < maxLength[i]) {
-
-            size = 21 + (4 * i);
-            version = ++i;
-
-            break;
+            if ([2, 3, 4].includes(r) && [2, 3, 4].includes(c)) {
+                values.push([coords[0] + r, coords[1] + c]);
+            }
         }
     }
 
-    console.log(size);
+    return values;
+}
+
+function alignmentPattern(coords) {
+
+    let values = [];
+    for (let r = -2; r <= 2; r++) {
+        for (let c = -2; c <= 2; c++) {
+
+            if ([-2, 2].includes(r) || [-2, 2].includes(c) || (r === 0 && c === 0)) {
+                values.push([coords[0] + r, coords[1] + c]);
+            }
+        }
+    }
+
+    return values;
+}
+
+function deployQR() {
+
+    document.getElementById("qrcode").innerHTML = ``;
+
+    let code = encodeQR();
+    console.log(code);
+
+    if (code === '404') {
+        document.getElementById('qrcode').classList.add('disable');
+        document.documentElement.style.setProperty('--canvas-bg-color', 'hsl(0, 0%, 11%)');
+
+        console.log('Request failed or left blank');
+        return;
+    }
+
+    if (code === '-1') {
+        document.getElementById('qrcode').classList.add('disable');
+        document.documentElement.style.setProperty('--canvas-bg-color', 'hsl(353, 100%, 71%)');
+
+        console.log('Error encountered while encoding QR');
+    }
+    else {
+        document.getElementById('qrcode').classList.remove('disable');
+        document.documentElement.style.setProperty('--canvas-bg-color', 'hsl(0, 0%, 100%)');
+
+        // Plot QR
+        let size = 21 + (4 * (version - 1));
+        document.documentElement.style.setProperty('--qr-size', size);
+
+        let qr = [];
+        for (let r = 0; r < size; r++) {
+
+            let row = [];
+            for (let c = 0; c < size; c++) {
+                row.push(0);
+            }
+
+            qr.push(row);
+        }
+
+        // x = qr[row][column]
+        console.log(qr);
+
+
+        let skips = []; // every module that has a function different from saving data
+        // will be stored in this array.
+
+        // Finder patterns
+        for (let coords of [[0, 0], [size - 7, 0], [0, size - 7]]) {
+            for (let i of finderPattern(coords)) {
+                let r = i[0], c = i[1];
+
+                qr[r][c] = 4;
+            }
+        }
+
+        for (let coords of [[0, 0], [size - 8, 0], [0, size - 8]]) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    skips.push([coords[0] + r, coords[1] + c]);
+                }
+            }
+        }
+
+        console.log('Finder patterns complete!');
+
+        // Alignment patterns
+        const alignmentPatternPositions = [
+            [],
+            [6, 18],
+            [6, 22],
+            [6, 26],
+            [6, 30],
+            [6, 34],
+            [6, 22, 38],
+            [6, 24, 42],
+            [6, 26, 46],
+            [6, 28, 50],
+            [6, 30, 54],
+            [6, 32, 58],
+            [6, 34, 62],
+            [6, 26, 46, 66],
+            [6, 26, 48, 70],
+            [6, 26, 50, 74],
+            [6, 30, 54, 78],
+            [6, 30, 56, 82],
+            [6, 30, 58, 86],
+            [6, 34, 62, 90],
+            [6, 28, 50, 72, 94],
+            [6, 26, 50, 74, 98],
+            [6, 30, 54, 78, 102],
+            [6, 28, 54, 80, 106],
+            [6, 32, 58, 84, 110],
+            [6, 30, 58, 86, 114],
+            [6, 34, 62, 90, 118],
+            [6, 26, 50, 74, 98, 122],
+            [6, 30, 54, 78, 102, 126],
+            [6, 26, 52, 78, 104, 130],
+            [6, 30, 56, 82, 108, 134],
+            [6, 34, 60, 86, 112, 138],
+            [6, 30, 58, 86, 114, 142],
+            [6, 34, 62, 90, 118, 146],
+            [6, 30, 54, 78, 102, 126, 150],
+            [6, 24, 50, 76, 102, 128, 154],
+            [6, 28, 54, 80, 106, 132, 158],
+            [6, 32, 58, 84, 110, 136, 162],
+            [6, 26, 54, 82, 100, 138, 166],
+            [6, 30, 58, 86, 114, 142, 170]
+        ];
+        let positions = alignmentPatternPositions[version - 1];
+
+        if (version > 1) {
+            for (let i of positions) for (let j of positions) {
+
+                // for every combination of i,j (row,column)
+                // we'll only do checks for the three finder corners, which are the only collisions
+
+                if ([i, j].includes(6) && (i === j || [i, j].includes(positions[positions.length - 1]))) {
+                    continue;
+                }
+
+                for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++) {
+                    skips.push([i + r, j + c]);
+                }
+
+                for (let k of alignmentPattern([i, j])) {
+                    let r = k[0], c = k[1];
+
+                    qr[r][c] = 4;
+                }
+            }
+        }
+
+        console.log('Alignment patterns complete!');
+
+        // Timing patterns
+        for (let k = 8; k < size - 8; k++) {
+            qr[6][k] = (k + 1) % 2 + 3;
+            qr[k][6] = (k + 1) % 2 + 3;
+
+            skips.push([6, k]);
+            skips.push([k, 6]);
+        }
+
+        console.log('Timing patterns complete!');
+
+        // Reserved areas
+        for (let k = 0; k < 8; k++) {
+            qr[8][size - 8 + k] = 2;
+            qr[size - 8 + k][8] = 2;
+
+            if (k != 6) {
+                qr[8][k] = 2;
+                qr[k][8] = 2;
+                qr[8][8] = 2;
+            }
+
+            skips.push([8, size - 8 + k]);
+            skips.push([size - 8 + k, 8]);
+
+            if (k != 6) {
+                skips.push([8, k]);
+                skips.push([k, 8]);
+                skips.push([8, 8]);
+            }
+        }
+
+        if (version > 6) {
+            for (let k = 0; k < 6; k++) {
+                qr[size - 11][k] = 2;
+                qr[size - 10][k] = 2;
+                qr[size - 9][k] = 2;
+
+                qr[k][size - 11] = 2;
+                qr[k][size - 10] = 2;
+                qr[k][size - 9] = 2;
+
+                skips.push([size - 11, k]);
+                skips.push([size - 10, k]);
+                skips.push([size - 9, k]);
+
+                skips.push([k, size - 11]);
+                skips.push([k, size - 10]);
+                skips.push([k, size - 9]);
+            }
+        }
+
+        // Dark module
+        qr[(4 * version) + 9][8] = 4;
+        skips.push([(4 * version) + 9, 8])
+
+        console.log(skips);
+
+        for (let k of skips) {
+            if (qr[k[0]][k[1]] === 0) {
+                qr[k[0]][k[1]] = 3;
+            }
+        }
+
+        // Data
+
+        let d = 0;
+        for (let c = size - 1; c >= 0; c -= 2) {
+
+            if (c > 6) {
+                if (c % 4 === 0) {
+                    for (let r = size - 1; r >= 0; r--) {
+                        if (qr[r][c] === 0) {
+                            qr[r][c] = Number(code.charAt(d));
+                            d++;
+                        }
+
+                        if (qr[r][c] === 0) {
+                            qr[r][c - 1] = Number(code.charAt(d));
+                            d++;
+                        }
+                    }
+                } else {
+                    for (let r = 0; r < size; r++) {
+                        if (qr[r][c] === 0) {
+                            qr[r][c] = Number(code.charAt(d));
+                            d++;
+                        }
+
+                        if (qr[r][c] === 0) {
+                            qr[r][c - 1] = Number(code.charAt(d));
+                            d++;
+                        }
+                    }
+                }
+            }
+
+            if (c === 6) {
+                c--;
+            }
+
+            if (c < 6) {
+                if ((c + 1) % 4 === 0) {
+                    for (let r = size - 1; r >= 0; r--) {
+                        if (qr[r][c] === 0) {
+                            qr[r][c] = Number(code.charAt(d));
+                            d++;
+                        }
+
+                        if (qr[r][c] === 0) {
+                            qr[r][c - 1] = Number(code.charAt(d));
+                            d++;
+                        }
+                    }
+                } else {
+                    for (let r = 0; r < size; r++) {
+                        if (qr[r][c] === 0) {
+                            qr[r][c] = Number(code.charAt(d));
+                            d++;
+                        }
+
+                        if (qr[r][c] === 0) {
+                            qr[r][c - 1] = Number(code.charAt(d));
+                            d++;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Masking
+        let masks = [[], [], [], [], [], [], [], []];
+        let scores = [0, 0, 0, 0, 0, 0, 0, 0];
+
+        for (let l = 0; l < 8; l++) {
+
+            let masked_qr = [];
+
+            for (let r = 0; r < size; r++) {
+                masked_qr.push([...qr[r]]);
+            }
+
+            console.log(masked_qr);
+
+            for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+
+                switch (l) {
+                    case 0:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && (r + c) % 2 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 1:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && r % 2 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 2:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && c % 3 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 3:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && (r + c) % 3 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 4:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 5:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && (r * c) % 2 + (r * c) % 3 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 6:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && ((r * c) % 2 + (r * c) % 3) % 2 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+
+                    case 7:
+
+                        if ([0, 1].includes(masked_qr[r][c]) && ((r + c) % 2 + (r * c) % 3) % 2 === 0) {
+                            masked_qr[r][c] = (masked_qr[r][c] + 1) % 2;
+                        }
+
+                        break;
+                }
+
+                if (masked_qr[r][c] === 3) {
+                    masked_qr[r][c] = 0;
+                } else if (masked_qr[r][c] === 4) {
+                    masked_qr[r][c] = 1;
+                }
+
+                for (let r = 0; r < size; r++) {
+                    masks[l].push([...masked_qr[r]]);
+                }
+            }
+
+            let addedCol = 0, addedRow = 0, addedPatt = 0, addedSq = 0;
+            let numBlack = 0, addedBias = 0;
+
+            for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+
+                // Test #1
+
+                let i = -2, j = -2;
+                while (r + i + 3 < size) {
+
+                    if (masked_qr[r + i + 2][c] % 2 != masked_qr[r + i + 3][c]) {
+                        i++;
+                        break;
+                    }
+
+                    i++;
+                }
+
+                while (c + j + 3 < size) {
+
+                    if (masked_qr[r][c + j + 2] % 2 != masked_qr[r][c + j + 3]) {
+                        j++;
+                        break;
+                    }
+
+                    j++;
+                }
+
+                if (i >= 3) {
+                    addedRow += i;
+                }
+
+                if (j >= 3) {
+                    addedCol += j;
+                }
+
+
+                // Test #2
+                if (r < size - 1 && c < size - 1) {
+                    if (masked_qr[r][c] === masked_qr[r + 1][c] &&
+                        masked_qr[r][c] === masked_qr[r][c + 1] &&
+                        masked_qr[r][c] === masked_qr[r + 1][c + 1]) {
+                        addedSq += 3;
+                    }
+                }
+
+                // Test #3
+
+                const comp1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0];
+                const comp2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+
+                if (c < size - 11) {
+                    for (let i = 0; i < 11; i++) {
+                        if (masked_qr[r][c + i] % 2 != comp1[i]) break;
+
+                        if (i === 10) {
+                            addedPatt += 40;
+                        }
+                    }
+
+                    for (let i = 0; i < 11; i++) {
+                        if (masked_qr[r][c + i] % 2 != comp2[i]) break;
+
+                        if (i === 10) {
+                            addedPatt += 40;
+                        }
+                    }
+                }
+
+                if (r < size - 11) {
+                    for (let i = 0; i < 11; i++) {
+                        if (masked_qr[r + i][c] % 2 != comp1[i]) break;
+
+                        if (i === 10) {
+                            addedPatt += 40;
+                        }
+                    }
+
+                    for (let i = 0; i < 11; i++) {
+                        if (masked_qr[r + i][c] % 2 != comp2[i]) break;
+
+                        if (i === 10) {
+                            addedPatt += 40;
+                        }
+                    }
+                }
+
+                // Test #4
+                if (masked_qr[r][c] % 2 === 1) {
+                    numBlack++;
+                }
+            }
+
+            let ratio = 100 * numBlack / (size * size);
+            let prev = Math.floor(ratio / 5), post = Math.ceil(ratio / 5);
+
+            addedBias = Math.min(Math.abs(prev - 50), Math.abs(post - 50)) * 2;
+
+            scores[l] = addedRow + addedCol + addedSq + addedPatt + addedBias;
+            console.log('sc:', scores[l]);
+        }
+
+        // let chosen = scores.indexOf(Math.min(...scores));
+
+        let chosen = 4;
+        const final_qr = masks[chosen];
+
+        console.log(masks);
+
+
+        console.log('chosen:', chosen);
+
+        // Deploy
+
+        let modules = 0;
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+
+                if (final_qr[r][c] === 1) {
+                    document.getElementById("qrcode")
+                        .innerHTML += `<div class="module-black"></div>`;
+                }
+                else if (final_qr[r][c] === 2) {
+                    document.getElementById("qrcode")
+                        .innerHTML += `<div class="module-rsv"></div>`;
+                }
+                else if (final_qr[r][c] === 3) {
+                    document.getElementById("qrcode")
+                        .innerHTML += `<div class="module-white"></div>`;
+                }
+                else if (final_qr[r][c] === 4) {
+                    document.getElementById("qrcode")
+                        .innerHTML += `<div class="module-black"></div>`;
+                }
+                else {
+                    document.getElementById("qrcode")
+                        .innerHTML += `<div class="module-white"></div>`;
+                }
+
+                modules++;
+            }
+        }
+
+        console.log('QR code deployed successfully!');
+    }
+}
+
+function encodeQR() {
+    let str = document.getElementById('input').value;
+
+    // // TESTING PURPOSES ONLY
+    // str = 'never gonna give you up, never gonna let you down, never gonna run around and desert you. we\'re no' +
+    //     ' strangers to love; you know the rules, and so do i.'
+
+    console.log(str);
+
+    if (str === '') {
+        return '404';
+    }
+
+    version = -1;
+
+    for (let i = 0; i < 41; i++) {
+        if (str.length < maxLength[i]) {
+            version = ++i;
+            break;
+        }
+    }
 
     if (version < 1) {
         encodingError = true;
@@ -381,18 +919,7 @@ function encodeQR() {
     }
 
     if (encodingError) {
-        document.getElementById('qrcode').classList.add('disable');
-        document.getElementById('error-msg').classList.remove('disable');
-
-        document.documentElement.style.setProperty('--canvas-bg-color', 'hsl(353, 100%, 71%)');
-
-        console.log('Error encountered while encoding QR');
-    }
-    else {
-        document.getElementById('qrcode').classList.remove('disable');
-        document.getElementById('error-msg').classList.add('disable');
-
-        document.documentElement.style.setProperty('--canvas-bg-color', 'hsl(0, 0%, 11%)');
+        return '-1';
     }
 
     let charCount = toBinary(str.length, version);
@@ -432,7 +959,7 @@ function encodeQR() {
     let group1 = [];
     let group2 = [];
 
-    console.log(bigStr.length);
+    console.log(bigStr);
 
     let dataArray = byteStringToArray(bigStr);
     console.log(dataArray);
@@ -548,12 +1075,6 @@ function encodeQR() {
         genPolynomial[i] = alpha[k];
     }
 
-    console.log('*******************************')
-    console.log(group1); // data
-    console.log(group2);
-    console.log(blocks);
-
-
     console.log(genPolynomial);
 
     // We're now ready to encode the error correction string!
@@ -628,9 +1149,8 @@ function encodeQR() {
     let encodedQR = interleavedData + interleavedErrorCorrection + remainder;
     console.log(encodedQR);
 
-    encodedQR = encodedQR.replaceAll(' ', '');
+    return encodedQR.replaceAll(' ', '');
 }
-
 
 function generateErrorCorrection(msgPolynomial, genPolynomial, errorCorrections) {
     let gen = genPolynomial, // this polynomial is static and does not change
@@ -681,17 +1201,6 @@ function generateErrorCorrection(msgPolynomial, genPolynomial, errorCorrections)
     return div;
 }
 
-function arrayToByteString(arr) {
-
-    let str = '';
-
-    for (let i = 0; i < arr.length; i++) {
-        str += toBinary(arr[i], 0) + ' ';
-    }
-
-    return str;
-}
-
 function byteStringToArray(arg) {
 
     let arr = [];
@@ -699,7 +1208,7 @@ function byteStringToArray(arg) {
 
     for (let c = 0; c < arg.length; c++) {
 
-        str += arg[c];
+        str += arg.charAt(c);
 
         if (c % 8 === 7) {
             arr.push(toBase10(str));
@@ -752,12 +1261,7 @@ function xor(x, y) {
 
 function toBase10(arg) {
 
-    let num = 0;
-
-    for (let i = 7; i >= 0; i--) {
-        num += Number(arg.charAt(i)) * Math.pow(2, i);
-    }
-
+    let num = parseInt(arg, 2);
     return num;
 }
 

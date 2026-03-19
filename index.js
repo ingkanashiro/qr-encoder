@@ -91,264 +91,34 @@ const errorCorrectionLookupTable = [ // EC per block / Blocks (1) / Codewords pe
 let encodingError = false;
 let version = -1;
 
-const alpha = [
-    1,
-    2,
-    4,
-    8,
-    16,
-    32,
-    64,
-    128,
-    29,
-    58,
-    116,
-    232,
-    205,
-    135,
-    19,
-    38,
-    76,
-    152,
-    45,
-    90,
-    180,
-    117,
-    234,
-    201,
-    143,
-    3,
-    6,
-    12,
-    24,
-    48,
-    96,
-    192,
-    157,
-    39,
-    78,
-    156,
-    37,
-    74,
-    148,
-    53,
-    106,
-    212,
-    181,
-    119,
-    238,
-    193,
-    159,
-    35,
-    70,
-    140,
-    5,
-    10,
-    20,
-    40,
-    80,
-    160,
-    93,
-    186,
-    105,
-    210,
-    185,
-    111,
-    222,
-    161,
-    95,
-    190,
-    97,
-    194,
-    153,
-    47,
-    94,
-    188,
-    101,
-    202,
-    137,
-    15,
-    30,
-    60,
-    120,
-    240,
-    253,
-    231,
-    211,
-    187,
-    107,
-    214,
-    177,
-    127,
-    254,
-    225,
-    223,
-    163,
-    91,
-    182,
-    113,
-    226,
-    217,
-    175,
-    67,
-    134,
-    17,
-    34,
-    68,
-    136,
-    13,
-    26,
-    52,
-    104,
-    208,
-    189,
-    103,
-    206,
-    129,
-    31,
-    62,
-    124,
-    248,
-    237,
-    199,
-    147,
-    59,
-    118,
-    236,
-    197,
-    151,
-    51,
-    102,
-    204,
-    133,
-    23,
-    46,
-    92,
-    184,
-    109,
-    218,
-    169,
-    79,
-    158,
-    33,
-    66,
-    132,
-    21,
-    42,
-    84,
-    168,
-    77,
-    154,
-    41,
-    82,
-    164,
-    85,
-    170,
-    73,
-    146,
-    57,
-    114,
-    228,
-    213,
-    183,
-    115,
-    230,
-    209,
-    191,
-    99,
-    198,
-    145,
-    63,
-    126,
-    252,
-    229,
-    215,
-    179,
-    123,
-    246,
-    241,
-    255,
-    227,
-    219,
-    171,
-    75,
-    150,
-    49,
-    98,
-    196,
-    149,
-    55,
-    110,
-    220,
-    165,
-    87,
-    174,
-    65,
-    130,
-    25,
-    50,
-    100,
-    200,
-    141,
-    7,
-    14,
-    28,
-    56,
-    112,
-    224,
-    221,
-    167,
-    83,
-    166,
-    81,
-    162,
-    89,
-    178,
-    121,
-    242,
-    249,
-    239,
-    195,
-    155,
-    43,
-    86,
-    172,
-    69,
-    138,
-    9,
-    18,
-    36,
-    72,
-    144,
-    61,
-    122,
-    244,
-    245,
-    247,
-    243,
-    251,
-    235,
-    203,
-    139,
-    11,
-    22,
-    44,
-    88,
-    176,
-    125,
-    250,
-    233,
-    207,
-    131,
-    27,
-    54,
-    108,
-    216,
-    173,
-    71,
-    142,
-    1
-];
+const alpha = [];
+
+for (let i = 0; i < 256; i++) {
+    if (i === 0) {
+        alpha[i] = 1;
+    }
+    else {
+        alpha[i] = xor285(2 * alpha[i - 1]);
+    }
+}
+console.log(alpha);
+
+function xor285(num) {
+    if (num < 256) {
+        return num;
+    }
+    else {
+        let str = num.toString(2),
+            result = '';
+
+        for (let k = 0; k < str.length; k++) {
+            result += (str.charAt(k) === ('100011101').charAt(k)) ? '0' : '1';
+        }
+
+        let f = parseInt(result, 2);
+        return f;
+    }
+}
 
 function finderPattern(coords) {
 
@@ -653,15 +423,15 @@ function deployQR() {
         let masks = [[], [], [], [], [], [], [], []];
         let scores = [0, 0, 0, 0, 0, 0, 0, 0];
 
+        const empty = [];
+
         for (let l = 0; l < 8; l++) {
 
-            let masked_qr = [];
+            let masked_qr = [...empty];
 
             for (let r = 0; r < size; r++) {
                 masked_qr.push([...qr[r]]);
             }
-
-            console.log(masked_qr);
 
             for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
 
@@ -737,10 +507,17 @@ function deployQR() {
                     masked_qr[r][c] = 1;
                 }
 
-                for (let r = 0; r < size; r++) {
-                    masks[l].push([...masked_qr[r]]);
-                }
+
             }
+
+            let finished_qr = [];
+
+            for (let r = 0; r < size; r++) {
+                finished_qr.push([...masked_qr[r]]);
+            }
+
+            masks[l] = finished_qr;
+            console.log(masks);
 
             let addedCol = 0, addedRow = 0, addedPatt = 0, addedSq = 0;
             let numBlack = 0, addedBias = 0;
@@ -844,13 +621,104 @@ function deployQR() {
             console.log('sc:', scores[l]);
         }
 
-        // let chosen = scores.indexOf(Math.min(...scores));
-
-        let chosen = 4;
-        const final_qr = masks[chosen];
+        const chosen = scores.indexOf(Math.min(...scores));
+        let final_qr = masks[chosen];
 
         console.log(masks);
 
+        // Add format and version codes
+
+        let mask = '01' + chosen.toString(2).padStart(3, '0');
+
+        let fmt = Number(mask).toString() + '0000000000';
+        let gen = '10100110111';
+
+        while (fmt.length > 10) {
+
+            // Add padding
+            let g = gen
+            while (g.length < fmt.length) {
+                g += '0';
+            }
+
+            // XOR the format string with the gen string
+
+            let str = '';
+            for (let i = 0; i < fmt.length; i++) {
+                str += (fmt.charAt(i) === g.charAt(i)) ? '0' : '1';
+            }
+
+            fmt = Number(str).toString();
+        }
+
+        while (fmt.length < 10) {
+            fmt += '0';
+        }
+
+        let correction = fmt;
+
+        const f = mask + correction;
+        console.log(f);
+
+        const s = '101010000010010';
+
+        let format = '';
+        for (let i = 0; i < f.length; i++) {
+            format += (f.charAt(i) === s.charAt(i)) ? '0' : '1';
+        }
+
+        console.log(format);
+
+        const coords1 = [
+            [8, 0],
+            [8, 1],
+            [8, 2],
+            [8, 3],
+            [8, 4],
+            [8, 5],
+            [8, 7],
+            [8, 8],
+            [7, 8],
+            [5, 8],
+            [4, 8],
+            [3, 8],
+            [2, 8],
+            [1, 8],
+            [0, 8]
+        ]
+        const coords2 = [
+            [size - 1, 8],
+            [size - 2, 8],
+            [size - 3, 8],
+            [size - 4, 8],
+            [size - 5, 8],
+            [size - 6, 8],
+            [size - 7, 8],
+            [8, size - 8],
+            [8, size - 7],
+            [8, size - 6],
+            [8, size - 5],
+            [8, size - 4],
+            [8, size - 3],
+            [8, size - 2],
+            [8, size - 1],
+        ]
+
+        let k = 0;
+        for (let coords of coords1) {
+            let r = coords[0], c = coords[1];
+            final_qr[r][c] = Number(format.charAt(k));
+
+            k++;
+        }
+
+        k = 0;
+        for (let coords of coords2) {
+            let r = coords[0], c = coords[1];
+            final_qr[r][c] = Number(format.charAt(k));
+
+            k++;
+        }
 
         console.log('chosen:', chosen);
 
@@ -892,10 +760,6 @@ function deployQR() {
 function encodeQR() {
     let str = document.getElementById('input').value;
 
-    // // TESTING PURPOSES ONLY
-    // str = 'never gonna give you up, never gonna let you down, never gonna run around and desert you. we\'re no' +
-    //     ' strangers to love; you know the rules, and so do i.'
-
     console.log(str);
 
     if (str === '') {
@@ -929,13 +793,10 @@ function encodeQR() {
 
     let fillerStr = '';
 
-    console.log(version);
-
     const parameters = errorCorrectionLookupTable[version - 1];
     let totalLength = (parameters[1] * parameters[2]) + (parameters[3] * parameters[4]);
 
     let fillerLength = (totalLength * 8) - (type + charCount + bitString).replaceAll(' ', '').length;
-    console.log(fillerLength);
 
     for (let i = 0; i < fillerLength; i++) {
 
@@ -954,15 +815,15 @@ function encodeQR() {
 
     console.log(type + ' ' + charCount + ' ' + bitString + ' ' + fillerStr);
 
-    let bigStr = (type + charCount + bitString + fillerStr).replaceAll(' ', '');
+    let msgStr = (type + charCount + bitString + fillerStr).replaceAll(' ', '');
 
     let group1 = [];
     let group2 = [];
 
-    console.log(bigStr);
+    console.log('msg:', msgStr);
 
-    let dataArray = byteStringToArray(bigStr);
-    console.log(dataArray);
+    let dataArray = byteStringToArray(msgStr);
+    console.log('data:', dataArray);
 
     // We need the number of blocks and codewords for each group.
 
@@ -1002,7 +863,7 @@ function encodeQR() {
 
         }
 
-        console.log(group1[b]);
+        console.log(`group 1-${b}:`, group1[b]);
         blocks.push(group1[b]);
     }
 
@@ -1015,6 +876,7 @@ function encodeQR() {
 
         }
 
+        console.log(`group 2-${b}:`, group1[b]);
         blocks.push(group2[b]);
     }
 
@@ -1075,7 +937,7 @@ function encodeQR() {
         genPolynomial[i] = alpha[k];
     }
 
-    console.log(genPolynomial);
+    console.log('g:', genPolynomial);
 
     // We're now ready to encode the error correction string!
     // Order: Group 1: [ blocks... ], Group 2: [ blocks... ]
@@ -1123,7 +985,7 @@ function encodeQR() {
         }
     }
 
-    console.log(interleavedData + interleavedErrorCorrection);
+    console.log('data:', interleavedData + interleavedErrorCorrection);
 
     // We're almost done encoding! Now we check the QR version for required remainder bits (0)
     let remainderReq;
@@ -1157,7 +1019,7 @@ function generateErrorCorrection(msgPolynomial, genPolynomial, errorCorrections)
         div = msgPolynomial; // this polynomial changes throughout the loops
 
     const loop = div.length;
-    console.log(errorCorrections);
+    console.log('e:', errorCorrections);
 
     // Now it's time to LOOP this thing.
     for (let l = 0; l < loop; l++) {
@@ -1197,7 +1059,7 @@ function generateErrorCorrection(msgPolynomial, genPolynomial, errorCorrections)
         div.pop();
     }
 
-    console.log(div);
+    console.log('correction:', div);
     return div;
 }
 
